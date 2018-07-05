@@ -107,21 +107,33 @@ func fill(c component) {
 	for i := range c.dependencies {
 		dep := &c.dependencies[i]
 
-		if cdep, exist := components[dep.fieldType]; exist {
-			fill(cdep)
+		cdep, exist := components[dep.fieldType]
 
-			fv := c.value.Field(dep.fieldIndex)
-			if fv.Kind() == reflect.Ptr {
-				if !cdep.value.CanAddr() {
-					panic(errors.New("wire: " + c.value.Type().Name() + " requires " + dep.fieldType.Name() + " as pointer, wire as a reference instead of a value"))
+		if !exist {
+			if dep.fieldType.Kind() == reflect.Interface {
+				for _, lc := range components {
+					if lc.value.Type().Implements(dep.fieldType) {
+						cdep = lc
+						goto Fill
+					}
 				}
-
-				fv.Set(cdep.value.Addr())
-			} else {
-				fv.Set(cdep.value)
 			}
-		} else {
+
 			panic(errors.New("wire: " + c.value.Type().Name() + " requires " + dep.fieldType.Name() + ", but none was found"))
+		}
+
+	Fill:
+		fill(cdep)
+
+		fv := c.value.Field(dep.fieldIndex)
+		if fv.Kind() == reflect.Ptr {
+			if !cdep.value.CanAddr() {
+				panic(errors.New("wire: " + c.value.Type().Name() + " requires " + dep.fieldType.Name() + " as pointer, wire as a reference instead of a value"))
+			}
+
+			fv.Set(cdep.value.Addr())
+		} else {
+			fv.Set(cdep.value)
 		}
 	}
 }

@@ -13,6 +13,10 @@ type ComponentA struct {
 	Value2 int
 }
 
+type Value interface {
+	Value() string
+}
+
 type ComponentB struct {
 	Value1 []int
 	Value2 ComponentA `wire:""`
@@ -24,12 +28,16 @@ type ComponentC struct {
 	Value1 *ComponentA `wire:""`
 	Value2 *ComponentB `wire:""`
 	Value3 bool
-	Value4 []int      `wire:""`
-	Value5 ComponentD `wire:""`
+	Value4 []int `wire:""`
+	Value5 Value `wire:""`
 }
 
 type ComponentD struct {
 	Value1 string `wire:""`
+}
+
+func (c ComponentD) Value() string {
+	return c.Value1
 }
 
 func TestWire(t *testing.T) {
