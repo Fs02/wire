@@ -72,10 +72,22 @@ func Connect(val interface{}) {
 	}
 
 	if !comp.complete && !ptr {
-		panic(errors.New("trying to connect incompleted component as a value, use a reference instead"))
+		panic(errors.New("wire: trying to connect incompleted component as a value, use a reference instead"))
 	}
 
 	components[rt] = comp
+}
+
+func Get(typ reflect.Type) interface{} {
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+
+	if c, exist := components[typ]; exist && c.value.CanAddr() {
+		return c.value.Addr().Interface()
+	}
+
+	panic("wire: addressable value for " + typ.Name() + " not found, try to connect the component using reference instead of pointer")
 }
 
 func Apply() {
@@ -101,7 +113,7 @@ func fill(c component) {
 			fv := c.value.Field(dep.fieldIndex)
 			if fv.Kind() == reflect.Ptr {
 				if !cdep.value.CanAddr() {
-					panic(errors.New(c.value.Type().Name() + " requires " + dep.fieldType.Name() + " as pointer, wire as a reference instead of a value"))
+					panic(errors.New("wire: " + c.value.Type().Name() + " requires " + dep.fieldType.Name() + " as pointer, wire as a reference instead of a value"))
 				}
 
 				fv.Set(cdep.value.Addr())
@@ -109,7 +121,7 @@ func fill(c component) {
 				fv.Set(cdep.value)
 			}
 		} else {
-			panic(errors.New(c.value.Type().Name() + " requires " + dep.fieldType.Name() + ", but none was found"))
+			panic(errors.New("wire: " + c.value.Type().Name() + " requires " + dep.fieldType.Name() + ", but none was found"))
 		}
 	}
 }

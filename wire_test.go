@@ -1,6 +1,7 @@
 package wire_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/Fs02/wire"
@@ -50,6 +51,11 @@ func TestWire(t *testing.T) {
 	wire.Connect(&componentC)
 	wire.Connect(&componentD)
 
+	cloneA := wire.Get(reflect.TypeOf(ComponentA{})).(*ComponentA)
+	cloneB := wire.Get(reflect.TypeOf(ComponentB{})).(*ComponentB)
+	cloneC := wire.Get(reflect.TypeOf(&ComponentC{})).(*ComponentC)
+	cloneD := wire.Get(reflect.TypeOf(&ComponentD{})).(*ComponentD)
+
 	wire.Apply()
 
 	assert.Equal(t, "LGTM!", vstring)
@@ -79,6 +85,11 @@ func TestWire(t *testing.T) {
 	}, componentC)
 
 	assert.Equal(t, ComponentD{Value1: "LGTM!"}, componentD)
+
+	assert.Equal(t, componentA, *cloneA)
+	assert.Equal(t, componentB, *cloneB)
+	assert.Equal(t, componentC, *cloneC)
+	assert.Equal(t, componentD, *cloneD)
 }
 
 func TestWire_requiresReferenceInsteadOfValue(t *testing.T) {
@@ -123,5 +134,17 @@ func TestWire_cannotWireComponent(t *testing.T) {
 
 	assert.Panics(t, func() {
 		wire.Connect(componentD)
+	})
+}
+
+func TestWire_getUnaddressableComponent(t *testing.T) {
+	componentA := ComponentA{}
+
+	wire.Init()
+
+	wire.Connect(componentA)
+
+	assert.Panics(t, func() {
+		wire.Get(reflect.TypeOf(ComponentA{}))
 	})
 }
