@@ -78,7 +78,9 @@ func Connect(val interface{}) {
 	components[rt] = comp
 }
 
-func Get(typ reflect.Type) interface{} {
+func Get(strct interface{}) interface{} {
+	typ := reflect.TypeOf(strct)
+
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
 	}
