@@ -1,0 +1,5 @@
+vendor
+coverage.out
+.tool-versions
+.vscode/
+debug.test
