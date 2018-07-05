@@ -41,28 +41,20 @@ func (c ComponentD) Value() string {
 }
 
 func TestWire(t *testing.T) {
-	vstring := "LGTM!"
-	vbool := true
-	vsint := []int{1, 2, 3}
-	componentA := ComponentA{Value1: "Hi!", Value2: 10}
-	componentB := ComponentB{Value1: []int{1}, Value3: "Hello!"}
-	componentC := ComponentC{Value3: false}
-	componentD := ComponentD{}
+	wire.Reset()
 
-	wire.Init()
+	vstring := wire.Connect("LGTM!").(string)
+	vbool := wire.Connect(true).(bool)
+	vsint := wire.Connect([]int{1, 2, 3}).([]int)
+	componentA := wire.Connect(&ComponentA{Value1: "Hi!", Value2: 10}).(*ComponentA)
+	componentB := wire.Connect(&ComponentB{Value1: []int{1}, Value3: "Hello!"}).(*ComponentB)
+	componentC := wire.Connect(&ComponentC{Value3: false}).(*ComponentC)
+	componentD := wire.Connect(&ComponentD{}).(*ComponentD)
 
-	wire.Connect(vstring)
-	wire.Connect(vbool)
-	wire.Connect(vsint)
-	wire.Connect(&componentA)
-	wire.Connect(&componentB)
-	wire.Connect(&componentC)
-	wire.Connect(&componentD)
-
-	cloneA := wire.Get(reflect.TypeOf(ComponentA{})).(*ComponentA)
-	cloneB := wire.Get(reflect.TypeOf(ComponentB{})).(*ComponentB)
-	cloneC := wire.Get(reflect.TypeOf(&ComponentC{})).(*ComponentC)
-	cloneD := wire.Get(reflect.TypeOf(&ComponentD{})).(*ComponentD)
+	cloneA := wire.Get(ComponentA{}).(*ComponentA)
+	cloneB := wire.Get(ComponentB{}).(*ComponentB)
+	cloneC := wire.Get(&ComponentC{}).(*ComponentC)
+	cloneD := wire.Get(&ComponentD{}).(*ComponentD)
 
 	wire.Apply()
 
@@ -70,16 +62,16 @@ func TestWire(t *testing.T) {
 	assert.Equal(t, true, vbool)
 	assert.Equal(t, []int{1, 2, 3}, vsint)
 
-	assert.Equal(t, ComponentA{Value1: "Hi!", Value2: 10}, componentA)
+	assert.Equal(t, &ComponentA{Value1: "Hi!", Value2: 10}, componentA)
 
-	assert.Equal(t, ComponentB{
+	assert.Equal(t, &ComponentB{
 		Value1: []int{1},
 		Value2: ComponentA{Value1: "Hi!", Value2: 10},
 		Value3: "Hello!",
 		Value4: true,
 	}, componentB)
 
-	assert.Equal(t, ComponentC{
+	assert.Equal(t, &ComponentC{
 		Value1: &ComponentA{Value1: "Hi!", Value2: 10},
 		Value2: &ComponentB{
 			Value1: []int{1},
@@ -92,12 +84,12 @@ func TestWire(t *testing.T) {
 		Value5: ComponentD{Value1: "LGTM!"},
 	}, componentC)
 
-	assert.Equal(t, ComponentD{Value1: "LGTM!"}, componentD)
+	assert.Equal(t, &ComponentD{Value1: "LGTM!"}, componentD)
 
-	assert.Equal(t, componentA, *cloneA)
-	assert.Equal(t, componentB, *cloneB)
-	assert.Equal(t, componentC, *cloneC)
-	assert.Equal(t, componentD, *cloneD)
+	assert.Equal(t, componentA, cloneA)
+	assert.Equal(t, componentB, cloneB)
+	assert.Equal(t, componentC, cloneC)
+	assert.Equal(t, componentD, cloneD)
 }
 
 func TestWire_requiresReferenceInsteadOfValue(t *testing.T) {
@@ -109,7 +101,7 @@ func TestWire_requiresReferenceInsteadOfValue(t *testing.T) {
 	componentC := ComponentC{Value3: false}
 	componentD := ComponentD{}
 
-	wire.Init()
+	wire.Reset()
 
 	wire.Connect(vstring)
 	wire.Connect(vbool)
@@ -127,7 +119,7 @@ func TestWire_requiresReferenceInsteadOfValue(t *testing.T) {
 func TestWire_missingDependency(t *testing.T) {
 	componentD := ComponentD{}
 
-	wire.Init()
+	wire.Reset()
 	wire.Connect(&componentD)
 
 	assert.Panics(t, func() {
@@ -138,7 +130,7 @@ func TestWire_missingDependency(t *testing.T) {
 func TestWire_cannotWireComponent(t *testing.T) {
 	componentD := ComponentD{}
 
-	wire.Init()
+	wire.Reset()
 
 	assert.Panics(t, func() {
 		wire.Connect(componentD)
@@ -148,7 +140,7 @@ func TestWire_cannotWireComponent(t *testing.T) {
 func TestWire_getUnaddressableComponent(t *testing.T) {
 	componentA := ComponentA{}
 
-	wire.Init()
+	wire.Reset()
 
 	wire.Connect(componentA)
 

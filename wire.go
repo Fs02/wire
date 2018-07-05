@@ -8,6 +8,7 @@ import (
 // TODO:
 // - check duplicate component
 // - named component
+// - check for ambiguous interface
 
 const tag = "wire"
 
@@ -25,14 +26,14 @@ type dependency struct {
 var components map[reflect.Type]component
 
 func init() {
-	Init()
+	Reset()
 }
 
-func Init() {
+func Reset() {
 	components = make(map[reflect.Type]component)
 }
 
-func Connect(val interface{}) {
+func Connect(val interface{}) interface{} {
 	ptr := false
 	rv := reflect.ValueOf(val)
 	rt := rv.Type()
@@ -51,7 +52,7 @@ func Connect(val interface{}) {
 
 	if rt.Kind() != reflect.Struct {
 		components[rt] = comp
-		return
+		return val
 	}
 
 	for i := 0; i < rt.NumField(); i++ {
@@ -76,6 +77,7 @@ func Connect(val interface{}) {
 	}
 
 	components[rt] = comp
+	return val
 }
 
 func Get(strct interface{}) interface{} {
