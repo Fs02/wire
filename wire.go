@@ -5,10 +5,6 @@ import (
 	"reflect"
 )
 
-// TODO:
-// - check duplicate component
-// - check for ambiguous interface
-
 const tag = "wire"
 
 type component struct {
@@ -77,6 +73,12 @@ func Connect(val interface{}, name ...string) interface{} {
 		ptr = true
 	}
 
+	if gr, ok := components[rt]; ok {
+		if _, ok := gr.find(nam); ok {
+			panic("wire: trying to connect component with same type and name")
+		}
+	}
+
 	if rt.Kind() != reflect.Struct {
 		components[rt] = append(components[rt], comp)
 		return val
@@ -120,7 +122,7 @@ func Get(strct interface{}, name ...string) interface{} {
 		typ = typ.Elem()
 	}
 
-	if gr, exist := components[typ]; exist {
+	if gr, ok := components[typ]; ok {
 		if c := gr.get(nam); c.value.CanAddr() {
 			return c.value.Addr().Interface()
 		}
@@ -149,7 +151,7 @@ func fill(c component) {
 		dep := c.dependencies[i]
 		cdep := component{}
 
-		if gr, exist := components[dep.typ]; exist {
+		if gr, ok := components[dep.typ]; ok {
 			cdep = gr.get(dep.name)
 		} else {
 			// scan if it's interface

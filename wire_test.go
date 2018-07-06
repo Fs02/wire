@@ -149,6 +149,17 @@ func TestWire_missingDependency(t *testing.T) {
 	})
 }
 
+func TestWire_duplicateDependency(t *testing.T) {
+	componentD := ComponentD{}
+
+	wire.Reset()
+	wire.Connect(&componentD)
+
+	assert.Panics(t, func() {
+		wire.Connect(&componentD)
+	})
+}
+
 func TestWire_cannotWireComponent(t *testing.T) {
 	componentD := ComponentD{}
 
