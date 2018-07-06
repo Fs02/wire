@@ -26,11 +26,19 @@ type dependency struct {
 
 type group []component
 
-func (gr group) Get(name string) component {
+func (gr group) find(name string) (component, bool) {
 	for _, c := range gr {
 		if c.name == name {
-			return c
+			return c, true
 		}
+	}
+
+	return component{}, false
+}
+
+func (gr group) get(name string) component {
+	if c, ok := gr.find(name); ok {
+		return c
 	}
 
 	panic("wire: no " + gr[0].value.Type().Name() + " identified using \"" + name + "\" found")
@@ -113,7 +121,7 @@ func Get(strct interface{}, name ...string) interface{} {
 	}
 
 	if gr, exist := components[typ]; exist {
-		if c := gr.Get(nam); c.value.CanAddr() {
+		if c := gr.get(nam); c.value.CanAddr() {
 			return c.value.Addr().Interface()
 		}
 	}
@@ -142,21 +150,29 @@ func fill(c component) {
 		cdep := component{}
 
 		if gr, exist := components[dep.typ]; exist {
-			cdep = gr.Get(dep.name)
+			cdep = gr.get(dep.name)
 		} else {
+			// scan if it's interface
+			matches := 0
+
 			if dep.typ.Kind() == reflect.Interface {
 				for _, gr := range components {
 					if gr[0].value.Type().Implements(dep.typ) {
-						cdep = gr.Get(dep.name)
-						goto Fill
+						if fcedp, ok := gr.find(dep.name); ok {
+							cdep = fcedp
+							matches++
+						}
 					}
 				}
 			}
 
-			panic(errors.New("wire: " + c.value.Type().Name() + " requires " + dep.typ.Name() + ", but none was found"))
+			if matches == 0 {
+				panic(errors.New("wire: " + c.value.Type().Name() + " requires " + dep.typ.Name() + " identified using \"" + dep.name + "\", but none was found"))
+			} else if matches > 1 {
+				panic(errors.New("wire: ambiguous connection found on " + c.value.Type().Name() + ", multiple components satisfy " + dep.typ.Name() + " interface, consider using named component"))
+			}
 		}
 
-	Fill:
 		fill(cdep)
 
 		fv := c.value.Field(dep.index)

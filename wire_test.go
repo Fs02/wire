@@ -1,20 +1,23 @@
 package wire_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/Fs02/wire"
 	"github.com/stretchr/testify/assert"
 )
 
+type Valuer interface {
+	Value() string
+}
+
 type ComponentA struct {
 	Value1 string
 	Value2 int
 }
 
-type Value interface {
-	Value() string
+func (c ComponentA) Value() string {
+	return c.Value1
 }
 
 type ComponentB struct {
@@ -28,8 +31,8 @@ type ComponentC struct {
 	Value1 *ComponentA `wire:""`
 	Value2 *ComponentB `wire:""`
 	Value3 bool
-	Value4 []int `wire:""`
-	Value5 Value `wire:""`
+	Value4 []int  `wire:""`
+	Value5 Valuer `wire:"component_d"`
 }
 
 type ComponentD struct {
@@ -38,6 +41,10 @@ type ComponentD struct {
 
 func (c ComponentD) Value() string {
 	return c.Value1
+}
+
+type ComponentE struct {
+	Value1 Valuer `wire:""`
 }
 
 func TestWire(t *testing.T) {
@@ -49,13 +56,15 @@ func TestWire(t *testing.T) {
 	componentA := wire.Connect(&ComponentA{Value1: "Hi!", Value2: 10}).(*ComponentA)
 	componentB := wire.Connect(&ComponentB{Value1: []int{1}, Value3: "Hello!"}).(*ComponentB)
 	componentC := wire.Connect(&ComponentC{Value3: false}).(*ComponentC)
-	componentD := wire.Connect(&ComponentD{}).(*ComponentD)
+	componentD := wire.Connect(&ComponentD{}, "component_d").(*ComponentD)
+	componentE := wire.Connect(&ComponentE{}).(*ComponentE)
 	wire.Connect(&ComponentA{Value1: "Hello!", Value2: 20}, "hello")
 
 	cloneA := wire.Get(ComponentA{}).(*ComponentA)
 	cloneB := wire.Get(ComponentB{}).(*ComponentB)
 	cloneC := wire.Get(&ComponentC{}).(*ComponentC)
-	cloneD := wire.Get(&ComponentD{}).(*ComponentD)
+	cloneD := wire.Get(&ComponentD{}, "component_d").(*ComponentD)
+	cloneE := wire.Get(&ComponentE{}).(*ComponentE)
 
 	wire.Apply()
 
@@ -87,30 +96,42 @@ func TestWire(t *testing.T) {
 
 	assert.Equal(t, &ComponentD{Value1: "LGTM!"}, componentD)
 
+	assert.Equal(t, &ComponentE{Value1: ComponentA{Value1: "Hi!", Value2: 10}}, componentE)
+
 	assert.Equal(t, componentA, cloneA)
 	assert.Equal(t, componentB, cloneB)
 	assert.Equal(t, componentC, cloneC)
 	assert.Equal(t, componentD, cloneD)
+	assert.Equal(t, componentE, cloneE)
+}
+
+func TestWire_ambiguousConnection(t *testing.T) {
+	wire.Reset()
+
+	wire.Connect("LGTM!")
+	wire.Connect(&ComponentA{Value1: "Hi!", Value2: 10})
+	wire.Connect(&ComponentD{})
+	wire.Connect(&ComponentE{})
+
+	assert.Panics(t, func() {
+		wire.Apply()
+	})
 }
 
 func TestWire_requiresReferenceInsteadOfValue(t *testing.T) {
 	vstring := "LGTM!"
 	vbool := true
-	vsint := []int{1, 2, 3}
-	componentA := ComponentA{Value1: "Hi!", Value2: 10}
 	componentB := ComponentB{Value1: []int{1}, Value3: "Hello!"}
 	componentC := ComponentC{Value3: false}
-	componentD := ComponentD{}
 
 	wire.Reset()
 
 	wire.Connect(vstring)
 	wire.Connect(vbool)
-	wire.Connect(vsint)
-	wire.Connect(componentA)
+	wire.Connect(ComponentA{Value1: "Hi!", Value2: 10})
+	wire.Connect(ComponentA{Value1: "Hello!", Value2: 10}, "hello")
 	wire.Connect(&componentB)
 	wire.Connect(&componentC)
-	wire.Connect(&componentD)
 
 	assert.Panics(t, func() {
 		wire.Apply()
@@ -146,6 +167,18 @@ func TestWire_getUnaddressableComponent(t *testing.T) {
 	wire.Connect(componentA)
 
 	assert.Panics(t, func() {
-		wire.Get(reflect.TypeOf(ComponentA{}))
+		wire.Get(ComponentA{})
+	})
+}
+
+func TestWire_Get_notFound(t *testing.T) {
+	componentA := ComponentA{}
+
+	wire.Reset()
+
+	wire.Connect(&componentA)
+
+	assert.Panics(t, func() {
+		wire.Get(ComponentA{}, "notexist")
 	})
 }
