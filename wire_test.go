@@ -60,13 +60,19 @@ func TestWire(t *testing.T) {
 	componentE := wire.Connect(&ComponentE{}).(*ComponentE)
 	wire.Connect(&ComponentA{Value1: "Hello!", Value2: 20}, "hello")
 
-	cloneA := wire.Get(ComponentA{}).(*ComponentA)
-	cloneB := wire.Get(ComponentB{}).(*ComponentB)
-	cloneC := wire.Get(&ComponentC{}).(*ComponentC)
-	cloneD := wire.Get(&ComponentD{}, "component_d").(*ComponentD)
-	cloneE := wire.Get(&ComponentE{}).(*ComponentE)
-
 	wire.Apply()
+
+	cloneA := ComponentA{}
+	cloneB := ComponentB{}
+	cloneC := ComponentC{}
+	cloneD := ComponentD{}
+	cloneE := ComponentE{}
+
+	wire.Resolve(&cloneA)
+	wire.Resolve(&cloneB)
+	wire.Resolve(&cloneC)
+	wire.Resolve(&cloneD, "component_d")
+	wire.Resolve(&cloneE)
 
 	assert.Equal(t, "LGTM!", vstring)
 	assert.Equal(t, true, vbool)
@@ -98,11 +104,11 @@ func TestWire(t *testing.T) {
 
 	assert.Equal(t, &ComponentE{Value1: ComponentA{Value1: "Hi!", Value2: 10}}, componentE)
 
-	assert.Equal(t, componentA, cloneA)
-	assert.Equal(t, componentB, cloneB)
-	assert.Equal(t, componentC, cloneC)
-	assert.Equal(t, componentD, cloneD)
-	assert.Equal(t, componentE, cloneE)
+	assert.Equal(t, *componentA, cloneA)
+	assert.Equal(t, *componentB, cloneB)
+	assert.Equal(t, *componentC, cloneC)
+	assert.Equal(t, *componentD, cloneD)
+	assert.Equal(t, *componentE, cloneE)
 }
 
 func TestWire_ambiguousConnection(t *testing.T) {
@@ -170,26 +176,27 @@ func TestWire_cannotWireComponent(t *testing.T) {
 	})
 }
 
-func TestWire_getUnaddressableComponent(t *testing.T) {
-	componentA := ComponentA{}
-
-	wire.Reset()
-
-	wire.Connect(componentA)
-
+func TestWire_Resolve_mustPointer(t *testing.T) {
 	assert.Panics(t, func() {
-		wire.Get(ComponentA{})
+		wire.Resolve(ComponentA{})
 	})
 }
 
-func TestWire_Get_notFound(t *testing.T) {
+func TestWire_Resolve_typeNotFound(t *testing.T) {
+	wire.Reset()
+
+	assert.Panics(t, func() {
+		wire.Resolve(&ComponentA{}, "notexist")
+	})
+}
+
+func TestWire_Resolve_nameNotFound(t *testing.T) {
 	componentA := ComponentA{}
 
 	wire.Reset()
-
 	wire.Connect(&componentA)
 
 	assert.Panics(t, func() {
-		wire.Get(ComponentA{}, "notexist")
+		wire.Resolve(&ComponentA{}, "notexist")
 	})
 }

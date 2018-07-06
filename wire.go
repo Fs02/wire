@@ -110,25 +110,27 @@ func Connect(val interface{}, name ...string) interface{} {
 	return val
 }
 
-func Get(strct interface{}, name ...string) interface{} {
-	typ := reflect.TypeOf(strct)
-	nam := ""
+func Resolve(out interface{}, name ...string) {
+	rv := reflect.ValueOf(out)
 
+	if rv.Type().Kind() != reflect.Ptr {
+		panic(errors.New("wire: resolve parameter must be a pointer"))
+	}
+
+	rv = rv.Elem()
+	rt := rv.Type()
+
+	nam := ""
 	if len(name) > 0 {
 		nam = name[0]
 	}
 
-	if typ.Kind() == reflect.Ptr {
-		typ = typ.Elem()
+	if gr, ok := components[rt]; ok {
+		rv.Set(gr.get(nam).value)
+		return
 	}
 
-	if gr, ok := components[typ]; ok {
-		if c := gr.get(nam); c.value.CanAddr() {
-			return c.value.Addr().Interface()
-		}
-	}
-
-	panic("wire: addressable value for " + typ.Name() + " not found, try to connect the component using reference instead of pointer")
+	panic("wire: no component with type " + rt.Name() + " found")
 }
 
 func Apply() {
@@ -137,9 +139,6 @@ func Apply() {
 			fill(comp)
 		}
 	}
-
-	// free memory
-	components = nil
 }
 
 func fill(c component) {
@@ -188,4 +187,7 @@ func fill(c component) {
 			fv.Set(cdep.value)
 		}
 	}
+
+	c.complete = true
+	c.dependencies = nil
 }
