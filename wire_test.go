@@ -19,7 +19,7 @@ type Value interface {
 
 type ComponentB struct {
 	Value1 []int
-	Value2 ComponentA `wire:""`
+	Value2 ComponentA `wire:"hello"`
 	Value3 string
 	Value4 bool `wire:""`
 }
@@ -50,6 +50,7 @@ func TestWire(t *testing.T) {
 	componentB := wire.Connect(&ComponentB{Value1: []int{1}, Value3: "Hello!"}).(*ComponentB)
 	componentC := wire.Connect(&ComponentC{Value3: false}).(*ComponentC)
 	componentD := wire.Connect(&ComponentD{}).(*ComponentD)
+	wire.Connect(&ComponentA{Value1: "Hello!", Value2: 20}, "hello")
 
 	cloneA := wire.Get(ComponentA{}).(*ComponentA)
 	cloneB := wire.Get(ComponentB{}).(*ComponentB)
@@ -66,7 +67,7 @@ func TestWire(t *testing.T) {
 
 	assert.Equal(t, &ComponentB{
 		Value1: []int{1},
-		Value2: ComponentA{Value1: "Hi!", Value2: 10},
+		Value2: ComponentA{Value1: "Hello!", Value2: 20},
 		Value3: "Hello!",
 		Value4: true,
 	}, componentB)
@@ -75,7 +76,7 @@ func TestWire(t *testing.T) {
 		Value1: &ComponentA{Value1: "Hi!", Value2: 10},
 		Value2: &ComponentB{
 			Value1: []int{1},
-			Value2: ComponentA{Value1: "Hi!", Value2: 10},
+			Value2: ComponentA{Value1: "Hello!", Value2: 20},
 			Value3: "Hello!",
 			Value4: true,
 		},
