@@ -1,8 +1,8 @@
 package wire
 
 import (
-	"errors"
 	"reflect"
+	"strings"
 )
 
 const tag = "wire"
@@ -18,6 +18,7 @@ type dependency struct {
 	name  string
 	index int
 	typ   reflect.Type
+	impl  string
 }
 
 type group []component
@@ -43,10 +44,10 @@ func (gr group) get(name string) component {
 var components map[reflect.Type]group
 
 func init() {
-	Reset()
+	Clear()
 }
 
-func Reset() {
+func Clear() {
 	components = make(map[reflect.Type]group)
 }
 
@@ -93,20 +94,30 @@ func Connect(val interface{}, name ...string) interface{} {
 				depRt = depRt.Elem()
 			}
 
+			nameAndImpl := strings.Split(tval, ",")
+			name := nameAndImpl[0]
+			impl := ""
+
+			if len(nameAndImpl) > 1 {
+				impl = nameAndImpl[1]
+			}
+
 			comp.complete = false
 			comp.dependencies = append(comp.dependencies, dependency{
-				name:  tval,
-				typ:   depRt,
+				name:  name,
 				index: i,
+				typ:   depRt,
+				impl:  impl,
 			})
 		}
 	}
 
 	if !comp.complete && !ptr {
-		panic(errors.New("wire: trying to connect incompleted component as a value, use a reference instead"))
+		panic("wire: trying to connect incompleted component as a value, use a reference instead")
 	}
 
 	components[rt] = append(components[rt], comp)
+
 	return val
 }
 
@@ -114,7 +125,7 @@ func Resolve(out interface{}, name ...string) {
 	rv := reflect.ValueOf(out)
 
 	if rv.Type().Kind() != reflect.Ptr {
-		panic(errors.New("wire: resolve parameter must be a pointer"))
+		panic("wire: resolve parameter must be a pointer")
 	}
 
 	rv = rv.Elem()
@@ -158,7 +169,9 @@ func fill(c component) {
 
 			if dep.typ.Kind() == reflect.Interface {
 				for _, gr := range components {
-					if gr[0].value.Type().Implements(dep.typ) {
+					ctyp := gr[0].value.Type()
+
+					if ctyp.Implements(dep.typ) && (dep.impl == "" || dep.impl == ctyp.Name()) {
 						if fcedp, ok := gr.find(dep.name); ok {
 							cdep = fcedp
 							matches++
@@ -168,9 +181,9 @@ func fill(c component) {
 			}
 
 			if matches == 0 {
-				panic(errors.New("wire: " + c.value.Type().String() + " requires " + dep.typ.String() + " identified using \"" + dep.name + "\", but none was found"))
+				panic("wire: " + c.value.Type().String() + " requires " + dep.typ.String() + " identified using \"" + dep.name + "\", but none was found")
 			} else if matches > 1 {
-				panic(errors.New("wire: ambiguous connection found on " + c.value.Type().String() + ", multiple components satisfy " + dep.typ.String() + " interface, consider using named component"))
+				panic("wire: ambiguous connection found on " + c.value.Type().String() + ", multiple components satisfy " + dep.typ.String() + " interface, consider using named component")
 			}
 		}
 
@@ -179,7 +192,7 @@ func fill(c component) {
 		fv := c.value.Field(dep.index)
 		if fv.Kind() == reflect.Ptr {
 			if !cdep.value.CanAddr() {
-				panic(errors.New("wire: " + c.value.Type().String() + " requires " + dep.typ.String() + " as pointer, connect as a reference instead of a value"))
+				panic("wire: " + c.value.Type().String() + " requires " + dep.typ.String() + " as pointer, connect as a reference instead of a value")
 			}
 
 			fv.Set(cdep.value.Addr())

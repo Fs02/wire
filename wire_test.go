@@ -32,11 +32,11 @@ type ComponentC struct {
 	Value2 *ComponentB `wire:""`
 	Value3 bool
 	Value4 []int  `wire:""`
-	Value5 Valuer `wire:"component_d"`
+	Value5 Valuer `wire:"component_d,ComponentD"`
 }
 
 type ComponentD struct {
-	Value1 string `wire:""`
+	Value1 string `wire:",ComponentA"`
 }
 
 func (c ComponentD) Value() string {
@@ -48,7 +48,7 @@ type ComponentE struct {
 }
 
 func TestWire(t *testing.T) {
-	wire.Reset()
+	wire.Clear()
 
 	vstring := wire.Connect("LGTM!").(string)
 	vbool := wire.Connect(true).(bool)
@@ -112,7 +112,7 @@ func TestWire(t *testing.T) {
 }
 
 func TestWire_ambiguousConnection(t *testing.T) {
-	wire.Reset()
+	wire.Clear()
 
 	wire.Connect("LGTM!")
 	wire.Connect(&ComponentA{Value1: "Hi!", Value2: 10})
@@ -130,7 +130,7 @@ func TestWire_requiresReferenceInsteadOfValue(t *testing.T) {
 	componentB := ComponentB{Value1: []int{1}, Value3: "Hello!"}
 	componentC := ComponentC{Value3: false}
 
-	wire.Reset()
+	wire.Clear()
 
 	wire.Connect(vstring)
 	wire.Connect(vbool)
@@ -147,7 +147,7 @@ func TestWire_requiresReferenceInsteadOfValue(t *testing.T) {
 func TestWire_missingDependency(t *testing.T) {
 	componentD := ComponentD{}
 
-	wire.Reset()
+	wire.Clear()
 	wire.Connect(&componentD)
 
 	assert.Panics(t, func() {
@@ -158,7 +158,7 @@ func TestWire_missingDependency(t *testing.T) {
 func TestWire_duplicateDependency(t *testing.T) {
 	componentD := ComponentD{}
 
-	wire.Reset()
+	wire.Clear()
 	wire.Connect(&componentD)
 
 	assert.Panics(t, func() {
@@ -169,7 +169,7 @@ func TestWire_duplicateDependency(t *testing.T) {
 func TestWire_cannotWireComponent(t *testing.T) {
 	componentD := ComponentD{}
 
-	wire.Reset()
+	wire.Clear()
 
 	assert.Panics(t, func() {
 		wire.Connect(componentD)
@@ -183,7 +183,7 @@ func TestWire_Resolve_mustPointer(t *testing.T) {
 }
 
 func TestWire_Resolve_typeNotFound(t *testing.T) {
-	wire.Reset()
+	wire.Clear()
 
 	assert.Panics(t, func() {
 		wire.Resolve(&ComponentA{}, "notexist")
@@ -193,7 +193,7 @@ func TestWire_Resolve_typeNotFound(t *testing.T) {
 func TestWire_Resolve_nameNotFound(t *testing.T) {
 	componentA := ComponentA{}
 
-	wire.Reset()
+	wire.Clear()
 	wire.Connect(&componentA)
 
 	assert.Panics(t, func() {
