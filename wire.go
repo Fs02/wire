@@ -90,6 +90,11 @@ func Connect(val interface{}, name ...string) {
 	for i := 0; i < rt.NumField(); i++ {
 		sf := rt.Field(i)
 		if tval, ok := sf.Tag.Lookup(tag); ok {
+
+			if tval == "-" {
+				continue
+			}
+
 			depRt := sf.Type
 
 			if depRt.Kind() == reflect.Ptr {
@@ -111,6 +116,8 @@ func Connect(val interface{}, name ...string) {
 				typ:   depRt,
 				impl:  impl,
 			})
+		} else if (sf.Type.Kind() == reflect.Ptr || sf.Type.Kind() == reflect.Interface) && rv.Field(i).IsNil() {
+			panic("wire: nil interface or pointer without wire detected for " + sf.Type.String() + ", to ignore add `wire:\"-\"`")
 		}
 	}
 

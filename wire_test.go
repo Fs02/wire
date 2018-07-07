@@ -37,6 +37,7 @@ type ComponentC struct {
 
 type ComponentD struct {
 	Value1 string `wire:",ComponentA"`
+	Value3 *int   `wire:"-"`
 }
 
 func (c ComponentD) Value() string {
@@ -122,7 +123,7 @@ func TestWire(t *testing.T) {
 	assert.Equal(t, componentE, resolvedE)
 }
 
-func TestWire_ambiguousConnection(t *testing.T) {
+func TestApply_ambiguousConnection(t *testing.T) {
 	wire.Clear()
 
 	wire.Connect("LGTM!")
@@ -135,7 +136,7 @@ func TestWire_ambiguousConnection(t *testing.T) {
 	})
 }
 
-func TestWire_requiresReferenceInsteadOfValue(t *testing.T) {
+func TestApply_requiresPointerInsteadOfValue(t *testing.T) {
 	vstring := "LGTM!"
 	vbool := true
 	componentB := ComponentB{Value1: []int{1}, Value3: "Hello!"}
@@ -155,7 +156,7 @@ func TestWire_requiresReferenceInsteadOfValue(t *testing.T) {
 	})
 }
 
-func TestWire_missingDependency(t *testing.T) {
+func TestApply_missingDependency(t *testing.T) {
 	componentD := ComponentD{}
 
 	wire.Clear()
@@ -166,7 +167,7 @@ func TestWire_missingDependency(t *testing.T) {
 	})
 }
 
-func TestWire_duplicateDependency(t *testing.T) {
+func TestConnect_duplicateDependency(t *testing.T) {
 	componentD := ComponentD{}
 
 	wire.Clear()
@@ -177,7 +178,7 @@ func TestWire_duplicateDependency(t *testing.T) {
 	})
 }
 
-func TestWire_cannotWireComponent(t *testing.T) {
+func TestConnect_cannotWireComponent(t *testing.T) {
 	componentD := ComponentD{}
 
 	wire.Clear()
@@ -187,13 +188,37 @@ func TestWire_cannotWireComponent(t *testing.T) {
 	})
 }
 
-func TestWire_Resolve_mustPointer(t *testing.T) {
+func TestConnect_nilInterface(t *testing.T) {
+	var a struct {
+		Value Valuer
+	}
+
+	wire.Clear()
+
+	assert.Panics(t, func() {
+		wire.Connect(&a)
+	})
+}
+
+func TestConnect_nilPointer(t *testing.T) {
+	var a struct {
+		Value *int
+	}
+
+	wire.Clear()
+
+	assert.Panics(t, func() {
+		wire.Connect(&a)
+	})
+}
+
+func TestResolve_mustPointer(t *testing.T) {
 	assert.Panics(t, func() {
 		wire.Resolve(ComponentA{})
 	})
 }
 
-func TestWire_Resolve_typeNotFound(t *testing.T) {
+func TestResolve_typeNotFound(t *testing.T) {
 	wire.Clear()
 
 	assert.Panics(t, func() {
@@ -201,7 +226,7 @@ func TestWire_Resolve_typeNotFound(t *testing.T) {
 	})
 }
 
-func TestWire_Resolve_nameNotFound(t *testing.T) {
+func TestResolve_nameNotFound(t *testing.T) {
 	componentA := ComponentA{}
 
 	wire.Clear()
