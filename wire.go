@@ -37,7 +37,7 @@ func (gr group) get(name string) component {
 		return c
 	}
 
-	panic("wire: no " + gr[0].value.Type().Name() + " identified using \"" + name + "\" found")
+	panic("wire: no " + gr[0].value.Type().String() + " identified using \"" + name + "\" found")
 }
 
 var components map[reflect.Type]group
@@ -130,7 +130,7 @@ func Resolve(out interface{}, name ...string) {
 		return
 	}
 
-	panic("wire: no component with type " + rt.Name() + " found")
+	panic("wire: no component with type " + rt.String() + " found")
 }
 
 func Apply() {
@@ -168,9 +168,9 @@ func fill(c component) {
 			}
 
 			if matches == 0 {
-				panic(errors.New("wire: " + c.value.Type().Name() + " requires " + dep.typ.Name() + " identified using \"" + dep.name + "\", but none was found"))
+				panic(errors.New("wire: " + c.value.Type().String() + " requires " + dep.typ.String() + " identified using \"" + dep.name + "\", but none was found"))
 			} else if matches > 1 {
-				panic(errors.New("wire: ambiguous connection found on " + c.value.Type().Name() + ", multiple components satisfy " + dep.typ.Name() + " interface, consider using named component"))
+				panic(errors.New("wire: ambiguous connection found on " + c.value.Type().String() + ", multiple components satisfy " + dep.typ.String() + " interface, consider using named component"))
 			}
 		}
 
@@ -179,7 +179,7 @@ func fill(c component) {
 		fv := c.value.Field(dep.index)
 		if fv.Kind() == reflect.Ptr {
 			if !cdep.value.CanAddr() {
-				panic(errors.New("wire: " + c.value.Type().Name() + " requires " + dep.typ.Name() + " as pointer, wire as a reference instead of a value"))
+				panic(errors.New("wire: " + c.value.Type().String() + " requires " + dep.typ.String() + " as pointer, connect as a reference instead of a value"))
 			}
 
 			fv.Set(cdep.value.Addr())
