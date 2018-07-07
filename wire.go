@@ -47,11 +47,13 @@ func init() {
 	Clear()
 }
 
+// Clear cached components.
 func Clear() {
 	components = make(map[reflect.Type]group)
 }
 
-func Connect(val interface{}, name ...string) interface{} {
+// Connect a component, optionally identified by name.
+func Connect(val interface{}, name ...string) {
 	ptr := false
 	rv := reflect.ValueOf(val)
 	rt := rv.Type()
@@ -82,7 +84,7 @@ func Connect(val interface{}, name ...string) interface{} {
 
 	if rt.Kind() != reflect.Struct {
 		components[rt] = append(components[rt], comp)
-		return val
+		return
 	}
 
 	for i := 0; i < rt.NumField(); i++ {
@@ -117,10 +119,11 @@ func Connect(val interface{}, name ...string) interface{} {
 	}
 
 	components[rt] = append(components[rt], comp)
-
-	return val
 }
 
+// Resolve a component with identified name.
+// This should be called only after wiring applied.
+// Resolving component multiple times should be avoided, consider caching the component if you need.
 func Resolve(out interface{}, name ...string) {
 	rv := reflect.ValueOf(out)
 
@@ -144,6 +147,7 @@ func Resolve(out interface{}, name ...string) {
 	panic("wire: no component with type " + rt.String() + " found")
 }
 
+// Apply wiring to all components.
 func Apply() {
 	for _, gr := range components {
 		for _, comp := range gr {
