@@ -146,9 +146,21 @@ func Resolve(out interface{}, name ...string) {
 		nam = name[0]
 	}
 
-	if gr, ok := components[rt]; ok {
-		rv.Set(gr.get(nam).value)
-		return
+	if rt.Kind() == reflect.Ptr {
+		// pointer inside pointer
+		if gr, ok := components[rt.Elem()]; ok {
+			if gr.get(nam).value.CanAddr() {
+				rv.Set(gr.get(nam).value.Addr())
+				return
+			}
+
+			panic("wire: component with type " + rt.String() + " identified by \"" + nam + "\" is not addressable, connect component using reference instead of value")
+		}
+	} else {
+		if gr, ok := components[rt]; ok {
+			rv.Set(gr.get(nam).value)
+			return
+		}
 	}
 
 	panic("wire: no component with type " + rt.String() + " found")

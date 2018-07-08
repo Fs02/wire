@@ -75,8 +75,8 @@ func TestWire(t *testing.T) {
 	var resolvedA ComponentA
 	var resolvedB ComponentB
 	var resolvedC ComponentC
-	var resolvedD ComponentD
-	var resolvedE ComponentE
+	var resolvedD *ComponentD
+	var resolvedE *ComponentE
 
 	wire.Resolve(&resolvedString)
 	wire.Resolve(&resolvedBool)
@@ -119,8 +119,8 @@ func TestWire(t *testing.T) {
 	assert.Equal(t, componentA, resolvedA)
 	assert.Equal(t, componentB, resolvedB)
 	assert.Equal(t, componentC, resolvedC)
-	assert.Equal(t, componentD, resolvedD)
-	assert.Equal(t, componentE, resolvedE)
+	assert.Equal(t, componentD, *resolvedD)
+	assert.Equal(t, componentE, *resolvedE)
 }
 
 func TestApply_ambiguousConnection(t *testing.T) {
@@ -231,8 +231,21 @@ func TestResolve_nameNotFound(t *testing.T) {
 
 	wire.Clear()
 	wire.Connect(&componentA)
+	wire.Apply()
 
 	assert.Panics(t, func() {
 		wire.Resolve(&ComponentA{}, "notexist")
+	})
+}
+
+func TestResolve_valueAsPointer(t *testing.T) {
+	wire.Clear()
+	wire.Connect(ComponentA{})
+	wire.Apply()
+
+	var resolve *ComponentA
+
+	assert.Panics(t, func() {
+		wire.Resolve(&resolve)
 	})
 }
