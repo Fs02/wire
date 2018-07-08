@@ -1,3 +1,5 @@
+// Package wire is runtime depedency injection/wiring for golang.
+// It's designed to be strict to avoid your go application running without proper dependency injected.
 package wire
 
 var global Container

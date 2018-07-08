@@ -6,8 +6,8 @@ Wire is runtime depedency injection/wiring for golang. It's designed to be stric
 
 Features:
 
-- Easily connect and resolve object anywhere.
 - Strictly validates dependency and prevents missing or ambiguous dependency.
+- Easily connect and resolve object anywhere.
 - Annotates ambiguous interface type using connection name or implementation name.
 
 ## Install
