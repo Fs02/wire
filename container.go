@@ -5,10 +5,47 @@ import (
 	"strings"
 )
 
+const tag = "wire"
+
+type component struct {
+	name         string
+	value        reflect.Value
+	dependencies []dependency
+}
+
+type dependency struct {
+	name  string
+	index int
+	typ   reflect.Type
+	impl  string
+}
+
+type group []component
+
+func (gr group) find(name string) (component, bool) {
+	for _, c := range gr {
+		if c.name == name {
+			return c, true
+		}
+	}
+
+	return component{}, false
+}
+
+func (gr group) get(name string) component {
+	if c, ok := gr.find(name); ok {
+		return c
+	}
+
+	panic("wire: no " + gr[0].value.Type().String() + " identified using \"" + name + "\" found")
+}
+
+// Container for DI.
 type Container struct {
 	components map[reflect.Type]group
 }
 
+// New create new isolated DI container.
 func New() Container {
 	return Container{
 		components: make(map[reflect.Type]group),
@@ -27,9 +64,8 @@ func (container Container) Connect(val interface{}, name ...string) {
 	}
 
 	comp := component{
-		name:     nam,
-		value:    rv,
-		complete: true,
+		name:  nam,
+		value: rv,
 	}
 
 	if rt.Kind() == reflect.Ptr {
@@ -72,7 +108,6 @@ func (container Container) Connect(val interface{}, name ...string) {
 				impl = nameAndImpl[1]
 			}
 
-			comp.complete = false
 			comp.dependencies = append(comp.dependencies, dependency{
 				name:  name,
 				index: i,
@@ -84,7 +119,7 @@ func (container Container) Connect(val interface{}, name ...string) {
 		}
 	}
 
-	if !comp.complete && !ptr {
+	if len(comp.dependencies) != 0 && !ptr {
 		panic("wire: trying to connect incompleted component as a value, use a reference instead")
 	}
 
@@ -139,7 +174,7 @@ func (container Container) Apply() {
 }
 
 func (container Container) fill(c component) {
-	if c.complete {
+	if len(c.dependencies) == 0 {
 		return
 	}
 
@@ -187,6 +222,5 @@ func (container Container) fill(c component) {
 		}
 	}
 
-	c.complete = true
 	c.dependencies = nil
 }

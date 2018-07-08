@@ -1,45 +1,5 @@
 package wire
 
-import (
-	"reflect"
-)
-
-const tag = "wire"
-
-type component struct {
-	name         string
-	complete     bool
-	value        reflect.Value
-	dependencies []dependency
-}
-
-type dependency struct {
-	name  string
-	index int
-	typ   reflect.Type
-	impl  string
-}
-
-type group []component
-
-func (gr group) find(name string) (component, bool) {
-	for _, c := range gr {
-		if c.name == name {
-			return c, true
-		}
-	}
-
-	return component{}, false
-}
-
-func (gr group) get(name string) component {
-	if c, ok := gr.find(name); ok {
-		return c
-	}
-
-	panic("wire: no " + gr[0].value.Type().String() + " identified using \"" + name + "\" found")
-}
-
 var global Container
 
 func init() {
