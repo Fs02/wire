@@ -43,11 +43,6 @@ func (gr group) get(name string) component {
 var global Container
 
 func init() {
-	Clear()
-}
-
-// Clear cached components.
-func Clear() {
 	global = New()
 }
 
