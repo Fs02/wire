@@ -55,17 +55,18 @@ func TestWire(t *testing.T) {
 	componentD := ComponentD{}
 	componentE := ComponentE{}
 
-	wire.Connect("LGTM!")
-	wire.Connect(true)
-	wire.Connect([]int{1, 2, 3})
-	wire.Connect(&componentA)
-	wire.Connect(&componentB)
-	wire.Connect(&componentC)
-	wire.Connect(&componentD, "component_d")
-	wire.Connect(&componentE)
-	wire.Connect(&ComponentA{Value1: "Hello!", Value2: 20}, "hello")
+	app := wire.New()
+	app.Connect("LGTM!")
+	app.Connect(true)
+	app.Connect([]int{1, 2, 3})
+	app.Connect(&componentA)
+	app.Connect(&componentB)
+	app.Connect(&componentC)
+	app.Connect(&componentD, "component_d")
+	app.Connect(&componentE)
+	app.Connect(&ComponentA{Value1: "Hello!", Value2: 20}, "hello")
 
-	wire.Apply()
+	app.Apply()
 
 	var resolvedString string
 	var resolvedBool bool
@@ -76,14 +77,14 @@ func TestWire(t *testing.T) {
 	var resolvedD *ComponentD
 	var resolvedE *ComponentE
 
-	wire.Resolve(&resolvedString)
-	wire.Resolve(&resolvedBool)
-	wire.Resolve(&resolvedSint)
-	wire.Resolve(&resolvedA)
-	wire.Resolve(&resolvedB)
-	wire.Resolve(&resolvedC)
-	wire.Resolve(&resolvedD, "component_d")
-	wire.Resolve(&resolvedE)
+	app.Resolve(&resolvedString)
+	app.Resolve(&resolvedBool)
+	app.Resolve(&resolvedSint)
+	app.Resolve(&resolvedA)
+	app.Resolve(&resolvedB)
+	app.Resolve(&resolvedC)
+	app.Resolve(&resolvedD, "component_d")
+	app.Resolve(&resolvedE)
 
 	assert.Equal(t, ComponentA{Value1: "Hi!", Value2: 10}, componentA)
 
