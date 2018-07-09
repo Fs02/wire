@@ -40,7 +40,7 @@ func (gr group) get(name string) component {
 	panic("wire: no " + gr[0].value.Type().String() + " identified using \"" + name + "\" found")
 }
 
-// Container for DI.
+// Container provides an isolated container for DI.
 type Container struct {
 	components map[reflect.Type]group
 }
@@ -127,8 +127,6 @@ func (container Container) Connect(val interface{}, name ...string) {
 }
 
 // Resolve a component with identified name.
-// This should be called only after wiring applied.
-// Resolving component multiple times should be avoided, consider caching the component if you need.
 func (container Container) Resolve(out interface{}, name ...string) {
 	rv := reflect.ValueOf(out)
 
