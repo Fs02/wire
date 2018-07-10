@@ -2,18 +2,22 @@ package wire
 
 import (
 	"reflect"
+	"runtime"
+	"strconv"
 	"strings"
 )
 
 const tag = "wire"
 
 type component struct {
-	name         string
+	id           string
 	value        reflect.Value
 	dependencies []dependency
+	declaredAt   string
 }
 
 type dependency struct {
+	id    string
 	name  string
 	index int
 	typ   reflect.Type
@@ -22,9 +26,9 @@ type dependency struct {
 
 type group []component
 
-func (gr group) find(name string) (component, bool) {
+func (gr group) find(id string) (component, bool) {
 	for _, c := range gr {
-		if c.name == name {
+		if c.id == id {
 			return c, true
 		}
 	}
@@ -32,17 +36,18 @@ func (gr group) find(name string) (component, bool) {
 	return component{}, false
 }
 
-func (gr group) get(name string) component {
-	if c, ok := gr.find(name); ok {
+func (gr group) get(id string) component {
+	if c, ok := gr.find(id); ok {
 		return c
 	}
 
-	panic("wire: no " + gr[0].value.Type().String() + " identified using \"" + name + "\" found")
+	panic(idNotFoundError{id: id, component: gr[0]})
 }
 
 // Container provides an isolated container for DI.
 type Container struct {
 	components map[reflect.Type]group
+	callerSkip int
 }
 
 // New create new isolated DI container.
@@ -52,20 +57,22 @@ func New() Container {
 	}
 }
 
-// Connect a component, optionally identified by name.
-func (container Container) Connect(val interface{}, name ...string) {
+// Connect a component, optionally identified by id.
+func (container Container) Connect(val interface{}, id ...string) {
 	ptr := false
 	rv := reflect.ValueOf(val)
 	rt := rv.Type()
 	nam := ""
+	_, file, no, _ := runtime.Caller(container.callerSkip + 1)
 
-	if len(name) > 0 {
-		nam = name[0]
+	if len(id) > 0 {
+		nam = id[0]
 	}
 
 	comp := component{
-		name:  nam,
-		value: rv,
+		id:         nam,
+		value:      rv,
+		declaredAt: file + ":" + strconv.Itoa(no),
 	}
 
 	if rt.Kind() == reflect.Ptr {
@@ -76,8 +83,8 @@ func (container Container) Connect(val interface{}, name ...string) {
 	}
 
 	if gr, ok := container.components[rt]; ok {
-		if _, ok := gr.find(nam); ok {
-			panic("wire: trying to connect component with same type and name")
+		if comp, ok := gr.find(nam); ok {
+			panic(duplicateError{previous: comp})
 		}
 	}
 
@@ -100,57 +107,59 @@ func (container Container) Connect(val interface{}, name ...string) {
 				depRt = depRt.Elem()
 			}
 
-			nameAndImpl := strings.Split(tval, ",")
-			name := nameAndImpl[0]
+			idAndImpl := strings.Split(tval, ",")
+			id := idAndImpl[0]
 			impl := ""
 
-			if len(nameAndImpl) > 1 {
-				impl = nameAndImpl[1]
+			if len(idAndImpl) > 1 {
+				impl = idAndImpl[1]
 			}
 
 			comp.dependencies = append(comp.dependencies, dependency{
-				name:  name,
+				id:    id,
+				name:  sf.Name,
 				index: i,
 				typ:   depRt,
 				impl:  impl,
 			})
 		} else if (sf.Type.Kind() == reflect.Ptr || sf.Type.Kind() == reflect.Interface) && rv.Field(i).IsNil() {
-			panic("wire: nil interface or pointer without wire detected for " + sf.Type.String() + ", to ignore add `wire:\"-\"`")
+			panic(tagMissingError{field: sf})
 		}
 	}
 
 	if len(comp.dependencies) != 0 && !ptr {
-		panic("wire: trying to connect incompleted component as a value, use a reference instead")
+		panic(incompletedError{})
 	}
 
 	container.components[rt] = append(container.components[rt], comp)
 }
 
-// Resolve a component with identified name.
-func (container Container) Resolve(out interface{}, name ...string) {
+// Resolve a component with identified id.
+func (container Container) Resolve(out interface{}, id ...string) {
 	rv := reflect.ValueOf(out)
 
 	if rv.Type().Kind() != reflect.Ptr {
-		panic("wire: resolve parameter must be a pointer")
+		panic(resolveParamError{})
 	}
 
 	rv = rv.Elem()
 	rt := rv.Type()
 
 	nam := ""
-	if len(name) > 0 {
-		nam = name[0]
+	if len(id) > 0 {
+		nam = id[0]
 	}
 
 	if rt.Kind() == reflect.Ptr {
 		// pointer inside pointer
 		if gr, ok := container.components[rt.Elem()]; ok {
-			if gr.get(nam).value.CanAddr() {
-				rv.Set(gr.get(nam).value.Addr())
+			comp := gr.get(nam)
+			if comp.value.CanAddr() {
+				rv.Set(comp.value.Addr())
 				return
 			}
 
-			panic("wire: component with type " + rt.String() + " identified by \"" + nam + "\" is not addressable, connect component using reference instead of value")
+			panic(notAddressableError{id: nam, paramType: rt, component: comp})
 		}
 	} else {
 		if gr, ok := container.components[rt]; ok {
@@ -159,7 +168,7 @@ func (container Container) Resolve(out interface{}, name ...string) {
 		}
 	}
 
-	panic("wire: no component with type " + rt.String() + " found")
+	panic(typeNotFoundError{paramType: rt})
 }
 
 // Apply wiring to all components.
@@ -181,7 +190,7 @@ func (container Container) fill(c component) {
 		cdep := component{}
 
 		if gr, ok := container.components[dep.typ]; ok {
-			cdep = gr.get(dep.name)
+			cdep = gr.get(dep.id)
 		} else {
 			// scan if it's interface
 			matches := 0
@@ -191,7 +200,7 @@ func (container Container) fill(c component) {
 					ctyp := gr[0].value.Type()
 
 					if ctyp.Implements(dep.typ) && (dep.impl == "" || dep.impl == ctyp.Name()) {
-						if fcedp, ok := gr.find(dep.name); ok {
+						if fcedp, ok := gr.find(dep.id); ok {
 							cdep = fcedp
 							matches++
 						}
@@ -200,9 +209,9 @@ func (container Container) fill(c component) {
 			}
 
 			if matches == 0 {
-				panic("wire: " + c.value.Type().String() + " requires " + dep.typ.String() + " identified using \"" + dep.name + "\", but none was found")
+				panic(dependencyNotFound{id: dep.id, component: c, dependency: dep})
 			} else if matches > 1 {
-				panic("wire: ambiguous connection found on " + c.value.Type().String() + ", multiple components satisfy " + dep.typ.String() + " interface, consider using named component")
+				panic(ambiguousError{component: c, dependency: dep})
 			}
 		}
 
@@ -211,7 +220,7 @@ func (container Container) fill(c component) {
 		fv := c.value.Field(dep.index)
 		if fv.Kind() == reflect.Ptr {
 			if !cdep.value.CanAddr() {
-				panic("wire: " + c.value.Type().String() + " requires " + dep.typ.String() + " as pointer, connect as a reference instead of a value")
+				panic(requiresPointerError{component: c, dependency: dep, depComponent: cdep})
 			}
 
 			fv.Set(cdep.value.Addr())

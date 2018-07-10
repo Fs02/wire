@@ -6,6 +6,7 @@ var global Container
 
 func init() {
 	global = New()
+	global.callerSkip = 1
 }
 
 // Connect a component, optionally identified by name.
