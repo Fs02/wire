@@ -109,4 +109,4 @@ func Example() {
 
 ## License
 
-Released under the [MIT License](https://github.com/Fs02/grimoire/blob/master/LICENSE)
+Released under the [MIT License](https://github.com/Fs02/wire/blob/master/LICENSE)
