@@ -10,7 +10,8 @@ type idNotFoundError struct {
 }
 
 func (err idNotFoundError) Error() string {
-	return "wire: no " + err.component.value.Type().String() + " identified using \"" + err.id + "\" found"
+	return "wire: no " + err.component.value.Type().String() +
+		" identified using \"" + err.id + "\" found"
 }
 
 type duplicateError struct {
@@ -18,7 +19,8 @@ type duplicateError struct {
 }
 
 func (err duplicateError) Error() string {
-	return "wire: trying to connect component with same type and id. previosly declared here:\n\t" + err.previous.declaredAt
+	return "wire: trying to connect component with same type and id. previosly declared here:\n\t" +
+		err.previous.declaredAt
 }
 
 type tagMissingError struct {
@@ -26,7 +28,9 @@ type tagMissingError struct {
 }
 
 func (err tagMissingError) Error() string {
-	return "wire: field with nil interface or pointer without wire detected for " + err.field.Name + " with type " + err.field.Type.String() + ", perhaps you forgot? to ignore add `wire:\"-\"`"
+	return "wire: field with nil interface or pointer without wire detected for " +
+		err.field.Name + " with type " + err.field.Type.String() +
+		", perhaps you forgot? to ignore add `wire:\"-\"`"
 }
 
 type incompletedError struct{}
@@ -48,7 +52,9 @@ type notAddressableError struct {
 }
 
 func (err notAddressableError) Error() string {
-	return "wire: component with type " + err.paramType.String() + " identified by \"" + err.id + "\" is not addressable, connect component using reference instead of value. declared here:\n\t" + err.component.declaredAt
+	return "wire: component with type " + err.paramType.String() + " identified by \"" + err.id +
+		"\" is not addressable, connect component using reference instead of value. declared here:\n\t" +
+		err.component.declaredAt
 }
 
 type typeNotFoundError struct {
@@ -66,7 +72,9 @@ type dependencyNotFound struct {
 }
 
 func (err dependencyNotFound) Error() string {
-	return "wire: field " + err.dependency.name + " of " + err.component.value.Type().String() + " requires " + err.dependency.typ.String() + " identified using \"" + err.id + "\", but none was found. declared here:\n\t" + err.component.declaredAt
+	return "wire: field " + err.dependency.name + " of " + err.component.value.Type().String() +
+		" requires " + err.dependency.typ.String() + " identified using \"" + err.id +
+		"\", but none was found. declared here:\n\t" + err.component.declaredAt
 }
 
 type ambiguousError struct {
@@ -75,7 +83,9 @@ type ambiguousError struct {
 }
 
 func (err ambiguousError) Error() string {
-	return "wire: ambiguous connection found on field " + err.dependency.name + " of " + err.component.value.Type().String() + ", multiple components satisfy " + err.dependency.typ.String() + " interface, consider using id. declared here:\n\t" + err.component.declaredAt
+	return "wire: ambiguous connection found on field " + err.dependency.name + " of " +
+		err.component.value.Type().String() + ", multiple components satisfy " + err.dependency.typ.String() +
+		" interface, consider using id. declared here:\n\t" + err.component.declaredAt
 }
 
 type requiresPointerError struct {
@@ -85,5 +95,8 @@ type requiresPointerError struct {
 }
 
 func (err requiresPointerError) Error() string {
-	return "wire: field " + err.dependency.name + " of " + err.component.value.Type().String() + " requires " + err.dependency.typ.String() + " as pointer, connect " + err.dependency.typ.String() + " as a reference instead of a value. declared here:\n\t" + err.component.declaredAt + "\n\t" + err.depComponent.declaredAt
+	return "wire: field " + err.dependency.name + " of " + err.component.value.Type().String() +
+		" requires " + err.dependency.typ.String() + " as pointer, connect " + err.dependency.typ.String() +
+		" as a reference instead of a value. declared here:\n\t" + err.component.declaredAt +
+		"\n\t" + err.depComponent.declaredAt
 }
