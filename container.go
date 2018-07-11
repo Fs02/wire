@@ -124,6 +124,11 @@ func (container Container) Connect(val interface{}, id ...string) {
 			})
 		} else if (sf.Type.Kind() == reflect.Ptr || sf.Type.Kind() == reflect.Interface) && rv.Field(i).IsNil() {
 			panic(tagMissingError{field: sf})
+		} else if sf.Type.Kind() == reflect.Struct {
+			// check forgotten tag only for struct.
+			if _, exist := container.components[sf.Type]; exist {
+				panic(tagForgottenError{field: sf})
+			}
 		}
 	}
 

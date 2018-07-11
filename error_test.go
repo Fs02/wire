@@ -37,6 +37,11 @@ func TestTagMissingError(t *testing.T) {
 		tagMissingError{field: reflect.StructField{Name: "A", Type: reflect.TypeOf(0)}}.Error())
 }
 
+func TestTagForgottenError(t *testing.T) {
+	assert.Equal(t, "wire: tag is missing for already connected type on A with type int, perhaps you forgot? to ignore add `wire:\"-\"`",
+		tagForgottenError{field: reflect.StructField{Name: "A", Type: reflect.TypeOf(0)}}.Error())
+}
+
 func TestIncompletedError(t *testing.T) {
 	assert.Equal(t, "wire: trying to connect incompleted component as a value, use a reference instead",
 		incompletedError{}.Error())

@@ -33,6 +33,15 @@ func (err tagMissingError) Error() string {
 		", perhaps you forgot? to ignore add `wire:\"-\"`"
 }
 
+type tagForgottenError struct {
+	field reflect.StructField
+}
+
+func (err tagForgottenError) Error() string {
+	return "wire: tag is missing for already connected type on " + err.field.Name + " with type " + err.field.Type.String() +
+		", perhaps you forgot? to ignore add `wire:\"-\"`"
+}
+
 type incompletedError struct{}
 
 func (err incompletedError) Error() string {

@@ -96,6 +96,19 @@ func TestContainer_Connect_nilPointer(t *testing.T) {
 	})
 }
 
+func TestContainer_Connect_tagForgotten(t *testing.T) {
+	var a struct {
+		Value ComponentA
+	}
+
+	app := wire.New()
+	app.Connect(ComponentA{})
+
+	assert.Panics(t, func() {
+		app.Connect(&a)
+	})
+}
+
 func TestContainer_Resolve_mustPointer(t *testing.T) {
 	app := wire.New()
 
