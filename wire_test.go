@@ -14,6 +14,7 @@ type Valuer interface {
 type ComponentA struct {
 	Value1 string
 	Value2 int
+	value3 interface{} // unexported
 }
 
 func (c ComponentA) Value() string {
