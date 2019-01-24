@@ -95,6 +95,12 @@ func (container Container) Connect(val interface{}, id ...string) {
 
 	for i := 0; i < rt.NumField(); i++ {
 		sf := rt.Field(i)
+
+		// skip unexported field
+		if sf.Name[0] >= 'a' && sf.Name[0] <= 'z' {
+			continue
+		}
+
 		if tval, ok := sf.Tag.Lookup(tag); ok {
 
 			if tval == "-" {
