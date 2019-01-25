@@ -11,6 +11,10 @@ type Valuer interface {
 	Value() string
 }
 
+type Setter interface {
+	Set(string)
+}
+
 type ComponentA struct {
 	Value1 string
 	Value2 int
@@ -19,6 +23,10 @@ type ComponentA struct {
 
 func (c ComponentA) Value() string {
 	return c.Value1
+}
+
+func (c *ComponentA) Set(v string) {
+	c.Value1 = v
 }
 
 type ComponentB struct {
@@ -47,6 +55,7 @@ func (c ComponentD) Value() string {
 
 type ComponentE struct {
 	Value1 Valuer `wire:""`
+	Value2 Setter `wire:""`
 }
 
 func TestWire(t *testing.T) {
@@ -111,7 +120,7 @@ func TestWire(t *testing.T) {
 
 	assert.Equal(t, ComponentD{Value1: "LGTM!"}, componentD)
 
-	assert.Equal(t, ComponentE{Value1: ComponentA{Value1: "Hi!", Value2: 10}}, componentE)
+	assert.Equal(t, ComponentE{Value1: ComponentA{Value1: "Hi!", Value2: 10}, Value2: &ComponentA{Value1: "Hi!", Value2: 10}}, componentE)
 
 	assert.Equal(t, "LGTM!", resolvedString)
 	assert.Equal(t, true, resolvedBool)

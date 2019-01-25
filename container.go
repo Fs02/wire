@@ -197,6 +197,7 @@ func (container Container) fill(c component) {
 	}
 
 	for i := range c.dependencies {
+		ptrInterface := false
 		dep := c.dependencies[i]
 		cdep := component{}
 
@@ -214,6 +215,17 @@ func (container Container) fill(c component) {
 						if fcedp, ok := gr.find(dep.id); ok {
 							cdep = fcedp
 							matches++
+							continue
+						}
+					}
+
+					// scan pointer type
+					cptrType := reflect.PtrTo(ctyp)
+					if cptrType.Implements(dep.typ) && (dep.impl == "" || dep.impl == ctyp.Name()) {
+						if fcedp, ok := gr.find(dep.id); ok {
+							ptrInterface = true
+							cdep = fcedp
+							matches++
 						}
 					}
 				}
@@ -229,7 +241,7 @@ func (container Container) fill(c component) {
 		container.fill(cdep)
 
 		fv := c.value.Field(dep.index)
-		if fv.Kind() == reflect.Ptr {
+		if fv.Kind() == reflect.Ptr || ptrInterface {
 			if !cdep.value.CanAddr() {
 				panic(requiresPointerError{component: c, dependency: dep, depComponent: cdep})
 			}
