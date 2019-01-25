@@ -211,7 +211,11 @@ func (container Container) fill(c component) {
 				for _, gr := range container.components {
 					ctyp := gr[0].value.Type()
 
-					if ctyp.Implements(dep.typ) && (dep.impl == "" || dep.impl == ctyp.Name()) {
+					if dep.impl != "" && dep.impl != ctyp.Name() {
+						continue
+					}
+
+					if ctyp.Implements(dep.typ) {
 						if fcedp, ok := gr.find(dep.id); ok {
 							cdep = fcedp
 							matches++
@@ -220,8 +224,7 @@ func (container Container) fill(c component) {
 					}
 
 					// scan pointer type
-					cptrType := reflect.PtrTo(ctyp)
-					if cptrType.Implements(dep.typ) && (dep.impl == "" || dep.impl == ctyp.Name()) {
+					if reflect.PtrTo(ctyp).Implements(dep.typ) {
 						if fcedp, ok := gr.find(dep.id); ok {
 							ptrInterface = true
 							cdep = fcedp
