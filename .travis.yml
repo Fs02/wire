@@ -11,9 +11,9 @@ before_script:
   - ./cc-test-reporter before-build
   - "curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash"
 script:
-  - dep ensure
-  - go test -coverprofile=c.out ./...
   - fossa init
   - fossa analyze
+  - dep ensure
+  - go test -coverprofile=c.out ./...
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
