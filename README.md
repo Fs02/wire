@@ -1,6 +1,7 @@
 # wire
 
 [![GoDoc](https://godoc.org/github.com/Fs02/wire?status.svg)](https://godoc.org/github.com/Fs02/wire) [![Build Status](https://travis-ci.org/Fs02/wire.svg?branch=master)](https://travis-ci.org/Fs02/wire) [![Go Report Card](https://goreportcard.com/badge/github.com/Fs02/wire)](https://goreportcard.com/report/github.com/Fs02/wire) [![Maintainability](https://api.codeclimate.com/v1/badges/7957f2fe0d2c6fd5d72c/maintainability)](https://codeclimate.com/github/Fs02/wire/maintainability) [![Test Coverage](https://api.codeclimate.com/v1/badges/7957f2fe0d2c6fd5d72c/test_coverage)](https://codeclimate.com/github/Fs02/wire/test_coverage)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FFs02%2Fwire.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FFs02%2Fwire?ref=badge_shield)
 
 Wire is runtime depedency injection/wiring for golang. It's designed to be strict to avoid your go application running without proper dependency injected.
 
@@ -110,3 +111,6 @@ func Example() {
 ## License
 
 Released under the [MIT License](https://github.com/Fs02/wire/blob/master/LICENSE)
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FFs02%2Fwire.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FFs02%2Fwire?ref=badge_large)
