@@ -57,6 +57,60 @@ func New() Container {
 	}
 }
 
+func dependinces(container Container, rt reflect.Type, rv reflect.Value) []dependency {
+
+	dependinces := make([]dependency, 0)
+
+	for i := 0; i < rt.NumField(); i++ {
+		sf := rt.Field(i)
+
+		// skip unexported field
+		if sf.Name[0] >= 'a' && sf.Name[0] <= 'z' {
+			continue
+		}
+
+		if tval, ok := sf.Tag.Lookup(tag); ok {
+
+			if tval == "-" {
+				continue
+			}
+
+			depRt := sf.Type
+
+			if depRt.Kind() == reflect.Ptr {
+				depRt = depRt.Elem()
+			}
+
+			idAndImpl := strings.Split(tval, ",")
+			id := idAndImpl[0]
+			impl := ""
+
+			if len(idAndImpl) > 1 {
+				impl = idAndImpl[1]
+			}
+
+			dependinces = append(dependinces, dependency{
+				id:    id,
+				name:  sf.Name,
+				index: i,
+				typ:   depRt,
+				impl:  impl,
+			})
+
+		} else if (sf.Type.Kind() == reflect.Ptr || sf.Type.Kind() == reflect.Interface) && rv.Field(i).IsNil() {
+			// Is this required
+			// panic(tagMissingError{field: sf})
+		} else if sf.Type.Kind() == reflect.Struct {
+			// check forgotten tag only for struct.
+			if _, exist := container.components[sf.Type]; exist {
+				panic(tagForgottenError{field: sf})
+			}
+		}
+	}
+
+	return dependinces
+}
+
 // Connect a component, optionally identified by id.
 func (container Container) Connect(val interface{}, id ...string) {
 	ptr := false
@@ -93,50 +147,7 @@ func (container Container) Connect(val interface{}, id ...string) {
 		return
 	}
 
-	for i := 0; i < rt.NumField(); i++ {
-		sf := rt.Field(i)
-
-		// skip unexported field
-		if sf.Name[0] >= 'a' && sf.Name[0] <= 'z' {
-			continue
-		}
-
-		if tval, ok := sf.Tag.Lookup(tag); ok {
-
-			if tval == "-" {
-				continue
-			}
-
-			depRt := sf.Type
-
-			if depRt.Kind() == reflect.Ptr {
-				depRt = depRt.Elem()
-			}
-
-			idAndImpl := strings.Split(tval, ",")
-			id := idAndImpl[0]
-			impl := ""
-
-			if len(idAndImpl) > 1 {
-				impl = idAndImpl[1]
-			}
-
-			comp.dependencies = append(comp.dependencies, dependency{
-				id:    id,
-				name:  sf.Name,
-				index: i,
-				typ:   depRt,
-				impl:  impl,
-			})
-		} else if (sf.Type.Kind() == reflect.Ptr || sf.Type.Kind() == reflect.Interface) && rv.Field(i).IsNil() {
-			panic(tagMissingError{field: sf})
-		} else if sf.Type.Kind() == reflect.Struct {
-			// check forgotten tag only for struct.
-			if _, exist := container.components[sf.Type]; exist {
-				panic(tagForgottenError{field: sf})
-			}
-		}
-	}
+	comp.dependencies = dependinces(container, rt, rv)
 
 	if len(comp.dependencies) != 0 && !ptr {
 		panic(incompletedError{})
@@ -173,6 +184,18 @@ func (container Container) Resolve(out interface{}, id ...string) {
 			panic(notAddressableError{id: nam, paramType: rt, component: comp})
 		}
 	} else {
+
+		if rt.Kind() == reflect.Interface {
+			for _, group := range container.components {
+				if v, e := group.find(nam); e {
+					if v.value.Addr().Type().Implements(rt) {
+						reflect.Indirect(rv).Set(v.value)
+						return
+					}
+				}
+			}
+		}
+
 		if gr, ok := container.components[rt]; ok {
 			rv.Set(gr.get(nam).value)
 			return
@@ -183,7 +206,37 @@ func (container Container) Resolve(out interface{}, id ...string) {
 }
 
 // Apply wiring to all components.
-func (container Container) Apply() {
+func (container Container) Apply(to ...interface{}) {
+
+	if len(to) > 0 {
+
+		rv := reflect.ValueOf(to[0])
+		rt := rv.Type()
+		_, file, no, _ := runtime.Caller(container.callerSkip + 1)
+
+		comp := component{
+			id:         "",
+			value:      rv,
+			declaredAt: file + ":" + strconv.Itoa(no),
+		}
+
+		if rt.Kind() == reflect.Ptr {
+			rt = rt.Elem()
+			rv = rv.Elem()
+			comp.value = rv
+		}
+
+		comp.dependencies = dependinces(
+			container,
+			rt,
+			rv,
+		)
+
+		container.fill(comp)
+
+		return
+	}
+
 	for _, gr := range container.components {
 		for _, comp := range gr {
 			container.fill(comp)
